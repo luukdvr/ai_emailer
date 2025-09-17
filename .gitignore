@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Gmail OAuth
+credentials.json
+token.json
+
+# Data
+/data/*.csv
+!data/prospects.csv
+
+# OS
+.DS_Store
+Thumbs.db
