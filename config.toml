@@ -8,6 +8,6 @@ service_name = "AI Website Optimalisatie"
 value_prop = "We helpen MKB bedrijven hun website te optimaliseren met AI voor meer leads en conversies."
 cta = "Zou je interesse hebben in een gratis analyse van je huidige website?"
 
-[openai]
-api_key = ""
-model = "gpt-4o-mini"
+[gemini]
+api_key = "AIzaSyA7BxKHjikWwiLULEa8Smdza9QC9XMyNBk"
+model = "gemini-1.5-flash-8b"

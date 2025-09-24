@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 from email.message import EmailMessage
-from typing import Optional
+from typing import Optional, List
 
 try:
     import backoff  # type: ignore
@@ -21,6 +21,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/gmail.labels",
     "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.readonly",
 ]
 TOKEN_PATH = os.path.join(os.path.dirname(__file__), "..", "token.json")
 CRED_PATH = os.path.join(os.path.dirname(__file__), "..", "credentials.json")
@@ -102,6 +103,10 @@ def _build_message(sender_header: str, to: str, subject: str, body_text: str) ->
 def send_message(service, to_email: str, subject: str, body: str, label_id: Optional[str], sender_header: Optional[str] = None) -> dict:
     message = _build_message(sender_header or "me", to_email, subject, body)
     sent = service.users().messages().send(userId="me", body=message).execute()
+    
+    # Get thread ID for tracking
+    thread_id = sent.get("threadId")
+    
     if label_id:
         try:
             service.users().messages().modify(
@@ -117,4 +122,27 @@ def send_message(service, to_email: str, subject: str, body: str, label_id: Opti
                     "Delete token.json and re-run to re-authorize with scopes: gmail.send, gmail.labels."
                 ) from e
             raise
+    
+    # Add thread_id to response for database tracking
+    sent["threadId"] = thread_id
     return sent
+
+
+def get_thread_messages(service, thread_id: str) -> List[dict]:
+    """Get all messages in a Gmail thread."""
+    try:
+        thread = service.users().threads().get(userId="me", id=thread_id).execute()
+        return thread.get("messages", [])
+    except Exception as e:
+        print(f"Error getting thread {thread_id}: {e}")
+        return []
+
+
+def get_message_content(service, message_id: str) -> dict:
+    """Get full content of a Gmail message."""
+    try:
+        message = service.users().messages().get(userId="me", id=message_id, format="full").execute()
+        return message
+    except Exception as e:
+        print(f"Error getting message {message_id}: {e}")
+        return {}

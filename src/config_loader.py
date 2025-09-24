@@ -27,9 +27,9 @@ class GmailCfg:
 
 
 @dataclass
-class OpenAICfg:
+class GeminiCfg:
     api_key: str
-    model: str = "gpt-4o-mini"
+    model: str = "gemini-1.5-flash-8b"
 
 
 @dataclass
@@ -42,7 +42,7 @@ class CampaignCfg:
 @dataclass
 class AppCfg:
     gmail: GmailCfg
-    openai: OpenAICfg
+    gemini: GeminiCfg
     campaign: CampaignCfg
 
 
@@ -50,7 +50,7 @@ def load_config(path: str) -> AppCfg:
     data = _load_toml(path)
 
     gmail = GmailCfg(**data.get("gmail", {}))
-    openai = OpenAICfg(**data.get("openai", {}))
+    gemini = GeminiCfg(**data.get("gemini", {}))
     campaign = CampaignCfg(**data.get("campaign", {}))
 
-    return AppCfg(gmail=gmail, openai=openai, campaign=campaign)
+    return AppCfg(gmail=gmail, gemini=gemini, campaign=campaign)

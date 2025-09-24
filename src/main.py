@@ -6,7 +6,9 @@ from typing import List
 
 from .config_loader import load_config
 from .gmail_client import get_service, ensure_label, send_message
-from .writer import CampaignConfig, Prospect, simple_template, openai_generate
+from .writer import CampaignConfig, Prospect, simple_template, gemini_generate
+from .database import EmailDatabase, SentEmail
+from datetime import datetime
 
 
 def load_prospects(csv_path: str) -> List[Prospect]:
@@ -60,6 +62,9 @@ def main():
 
     cfg = load_config(os.path.join(os.path.dirname(__file__), "..", "config.toml"))
 
+    # Initialize database
+    db = EmailDatabase()
+
     service = None
     label_id = None
     if not args.dry_run:
@@ -89,11 +94,11 @@ def main():
         cta=cfg.campaign.cta,
     )
 
-    use_openai = bool(cfg.openai.api_key)
+    use_gemini = bool(cfg.gemini.api_key)
 
     for p in prospects:
-        if use_openai:
-            subject, body = openai_generate(cfg.openai.api_key, cfg.openai.model, camp_cfg, p)
+        if use_gemini:
+            subject, body = gemini_generate(cfg.gemini.api_key, cfg.gemini.model, camp_cfg, p)
         else:
             subject, body = simple_template(camp_cfg, p)
 
@@ -114,7 +119,24 @@ def main():
 
         try:
             sent = send_message(service, p.email, subject, body, label_id, sender_header=sender_header)
+            
+            # Save to database for reply tracking
+            sent_email = SentEmail(
+                id=None,
+                thread_id=sent.get("threadId", ""),
+                message_id=sent.get("id", ""),
+                prospect_email=p.email,
+                prospect_name=p.contact_name,
+                company=p.company,
+                subject=subject,
+                body=body,
+                sent_at=datetime.now(),
+                label=cfg.gmail.label
+            )
+            db.save_sent_email(sent_email)
+            
             print(f"Sent to {p.email}: https://mail.google.com/mail/u/0/#sent/{sent.get('id')}")
+            print(f"Saved to database for reply tracking")
         except RuntimeError as e:
             print(str(e))
             return
